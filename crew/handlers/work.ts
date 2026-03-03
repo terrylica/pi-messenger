@@ -11,7 +11,7 @@ import type { CrewParams, AppendEntryFn } from "../types.js";
 import { result } from "../utils/result.js";
 import { resolveModel, spawnAgents } from "../agents.js";
 import { loadCrewConfig } from "../utils/config.js";
-import { discoverCrewAgents } from "../utils/discover.js";
+import { discoverCrewAgents, discoverCrewSkills } from "../utils/discover.js";
 import { buildWorkerPrompt } from "../prompt.js";
 import * as store from "../store.js";
 import { getCrewDir } from "../store.js";
@@ -109,6 +109,8 @@ export async function execute(
     appendEntry("crew-state", autonomousState);
   }
 
+  const skills = discoverCrewSkills(cwd);
+
   // Assign tasks to lobby workers first (they're already running and warmed up)
   const prdLabel = store.getPlanLabel(plan);
   const lobbyAssigned = new Set<string>();
@@ -118,7 +120,7 @@ export async function execute(
     if (!task) break;
 
     const others = readyTasks.filter(t => t.id !== task.id);
-    const prompt = buildWorkerPrompt(task, prdLabel, cwd, config, others);
+    const prompt = buildWorkerPrompt(task, prdLabel, cwd, config, others, skills);
     store.updateTask(cwd, task.id, {
       status: "in_progress",
       started_at: new Date().toISOString(),
@@ -145,7 +147,7 @@ export async function execute(
       config.models?.worker,
     );
     const others = readyTasks.filter(t => t.id !== task.id);
-    const prompt = buildWorkerPrompt(task, prdLabel, cwd, config, others);
+    const prompt = buildWorkerPrompt(task, prdLabel, cwd, config, others, skills);
     store.appendTaskProgress(cwd, task.id, "system", `Assigned to crew-worker (attempt ${task.attempt_count + 1})`);
 
     return {

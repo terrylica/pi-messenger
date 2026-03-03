@@ -40,6 +40,7 @@ export interface Task {
   milestone?: boolean;
   model?: string;
   depends_on: string[];          // Task IDs this depends on
+  skills?: string[];             // Skill names from planner
   created_at: string;            // ISO timestamp
   updated_at: string;            // ISO timestamp
   started_at?: string;           // When task.start was called

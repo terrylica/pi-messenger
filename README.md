@@ -16,7 +16,7 @@
 pi install npm:pi-messenger
 ```
 
-Crew agents ship with the extension (`crew/agents/*.md`) and are discovered automatically. The `pi-messenger-crew` skill is auto-loaded from the extension.
+Crew agents ship with the extension (`crew/agents/*.md`) and are discovered automatically. The `pi-messenger-crew` skill is auto-loaded from the extension. Workers can load domain-specific [crew skills](#crew-skills) on demand during task execution.
 
 To show available crew agents:
 
@@ -122,6 +122,34 @@ Wave 3:  task-5 (→ task-2, task-4) ── both deps done
 ```
 
 The planner structures tasks to maximize parallelism. Foundation work has no dependencies and starts immediately. Features that don't touch each other get separate chains. Autonomous mode stops when all tasks are done or blocked.
+
+### Crew Skills
+
+Workers follow the same join/read/implement/commit/release protocol regardless of the task — what changes between tasks is domain knowledge. Crew skills let workers acquire that knowledge on demand.
+
+Skills are discovered from three locations (later sources override earlier by name):
+
+1. **User skills** — `~/.pi/agent/skills/` (pi's standard `dir/SKILL.md` format)
+2. **Extension skills** — `crew/skills/` within the extension (flat `.md` files)
+3. **Project skills** — `.pi/messenger/crew/skills/` in your project root (flat `.md` files)
+
+The planner sees a compact index of all discovered skills and can tag tasks with relevant ones. Workers see tagged skills as "Recommended for this task" with the full catalog under "Also available", and load what they need via `read()`. Zero tokens spent until a worker actually needs the knowledge.
+
+To add a project-level skill, drop a `.md` file in `.pi/messenger/crew/skills/`:
+
+```markdown
+---
+name: our-api-patterns
+description: REST API conventions for this project — auth, pagination, error shapes.
+---
+
+# API Patterns
+
+Always use Bearer token auth. Paginate with cursor-based `?after=` params.
+Error responses use `{ error: { code, message, details? } }` shape.
+```
+
+Any skills you already have in `~/.pi/agent/skills/` are automatically available to crew workers — no setup needed.
 
 ### Crew Configuration
 

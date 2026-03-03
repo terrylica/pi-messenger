@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.0] - 2026-03-02
+
+### Added
+- **Dynamic skill loading for crew workers** — Workers can now acquire domain-specific knowledge on demand during task execution. A three-tier discovery system scans user skills (`~/.pi/agent/skills/`), extension skills (`crew/skills/`), and project skills (`.pi/messenger/crew/skills/`) to build a skill catalog. The planner sees the catalog and can tag tasks with relevant skill names. Workers see tagged skills as "Recommended" in their prompt alongside the full catalog, and load what they need via `read()` — zero upfront token cost, no config changes. Project-level skills override extension, which override user, matching the agent override pattern. When no skills are configured, prompts are unchanged.
+
+### Fixed
+- **Artifact dir creation** — `writeArtifact`, `writeMetadata`, and `appendJsonl` now create parent directories on demand. Fixes ENOENT on first `plan` run.
+- **Multiline feed sanitization** — Feed events with embedded newlines no longer corrupt the TUI overlay layout.
+- **Config model override** — `crew.models` config now actually overrides agent defaults. Priority: task override > config > agent frontmatter.
+
 ## [0.12.1] - 2026-02-22
 
 ### Fixed
