@@ -18,6 +18,7 @@ export type FeedEventType =
   | "edit"
   | "task.start"
   | "task.done"
+  | "task.review"
   | "task.block"
   | "task.unblock"
   | "task.reset"
@@ -128,6 +129,7 @@ export function pruneFeed(cwd: string, maxEvents: number): void {
 const CREW_EVENT_TYPES = new Set<FeedEventType>([
   "task.start",
   "task.done",
+  "task.review",
   "task.block",
   "task.unblock",
   "task.reset",
@@ -182,6 +184,7 @@ export function formatFeedLine(event: FeedEvent): string {
     case "edit": line += ` editing ${target}`; break;
     case "task.start": line += withPreview(` started ${target}`); break;
     case "task.done": line += withPreview(` completed ${target}`); break;
+    case "task.review": line += withPreview(` reviewed ${target}`); break;
     case "task.block": line += withPreview(` blocked ${target}`); break;
     case "task.unblock": line += withPreview(` unblocked ${target}`); break;
     case "task.reset": line += withPreview(` reset ${target}`); break;

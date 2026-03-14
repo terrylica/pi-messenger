@@ -13,6 +13,7 @@ import { resolveModel, spawnAgents } from "../agents.js";
 import { loadCrewConfig } from "../utils/config.js";
 import { discoverCrewAgents, discoverCrewSkills } from "../utils/discover.js";
 import { buildWorkerPrompt } from "../prompt.js";
+import { reviewImplementation } from "./review.js";
 import * as store from "../store.js";
 import { getCrewDir } from "../store.js";
 import { autonomousState, isAutonomousForCwd, startAutonomous, stopAutonomous, addWaveResult, clampConcurrency } from "../state.js";
@@ -220,6 +221,48 @@ export async function execute(
     }
   }
 
+  // Auto-review succeeded tasks
+  if (config.review.enabled && succeeded.length > 0) {
+    const hasReviewer = availableAgents.some(a => a.name === "crew-reviewer");
+    if (hasReviewer) {
+      for (const taskId of [...succeeded]) {
+        if (signal?.aborted) break;
+        const task = store.getTask(cwd, taskId);
+        if (!task || !task.base_commit) continue;
+        if ((task.review_count ?? 0) >= config.review.maxIterations) continue;
+
+        const rr = await reviewImplementation(cwd, taskId, config.models?.reviewer);
+        const verdict = rr.details?.verdict as string | undefined;
+        if (!verdict) {
+          store.appendTaskProgress(cwd, taskId, "system",
+            `Auto-review skipped: ${rr.details?.error ?? "unknown"}`);
+          continue;
+        }
+
+        const reviewCount = (task.review_count ?? 0) + 1;
+        store.updateTask(cwd, taskId, { review_count: reviewCount });
+
+        if (verdict === "SHIP") {
+          logFeedEvent(cwd, "crew", "task.review", taskId, "SHIP");
+        } else if (verdict === "NEEDS_WORK") {
+          store.resetTask(cwd, taskId);
+          logFeedEvent(cwd, "crew", "task.review", taskId, "NEEDS_WORK — reset for retry");
+          succeeded.splice(succeeded.indexOf(taskId), 1);
+          failed.push(taskId);
+        } else {
+          const lastReview = store.getTask(cwd, taskId)?.last_review;
+          const summary = lastReview?.summary
+            ? lastReview.summary.split("\n")[0].slice(0, 120)
+            : "Major issues found";
+          store.blockTask(cwd, taskId, `Reviewer: ${summary}`);
+          logFeedEvent(cwd, "crew", "task.review", taskId, "MAJOR_RETHINK — blocked");
+          succeeded.splice(succeeded.indexOf(taskId), 1);
+          blocked.push(taskId);
+        }
+      }
+    }
+  }
+
   syncCompletedCount(cwd);
 
   // Save current wave number BEFORE addWaveResult increments it
@@ -327,4 +370,3 @@ function syncCompletedCount(cwd: string): void {
     store.updatePlan(cwd, { completed_count: doneCount });
   }
 }
-

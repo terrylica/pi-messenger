@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.13.1] - 2026-03-14
+
+### Added
+- **Auto-review after task completion** — Workers' completed tasks now get an automatic reviewer pass before being counted as done. Controlled by existing `config.review.enabled` (default: true) and `config.review.maxIterations` (default: 3). SHIP keeps the task done, NEEDS_WORK resets it to todo for retry with review feedback injected into the next worker's prompt, MAJOR_RETHINK blocks the task. Reviews run sequentially between worker completion and wave result reporting, and respect the abort signal. Adds `review_count` to the Task interface and `task.review` to the activity feed.
+
 ## [0.13.0] - 2026-03-02
 
 ### Added

@@ -51,6 +51,7 @@ export interface Task {
   evidence?: TaskEvidence;       // Evidence from task.done
   blocked_reason?: string;       // Reason from task.block
   attempt_count: number;         // How many times attempted (for auto-block)
+  review_count?: number;         // How many times reviewed
   last_review?: ReviewFeedback;  // Feedback from last review (for retry)
 }
 
