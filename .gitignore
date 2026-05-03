@@ -3,3 +3,6 @@ package-lock.json
 npm-shrinkwrap.json
 *.DS_Store
 .pi/
+
+# Local agent scratch
+progress.md
