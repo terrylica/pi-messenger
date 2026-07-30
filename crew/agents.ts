@@ -52,10 +52,16 @@ export function shutdownAllWorkers(): void {
 export function resolveModel(
   taskModel?: string,
   paramModel?: string,
+  roleModel?: string,
   configModel?: string,
+  sessionModel?: string,
   agentModel?: string,
 ): string | undefined {
-  return taskModel ?? paramModel ?? configModel ?? agentModel;
+  return taskModel ?? paramModel ?? roleModel ?? configModel ?? sessionModel ?? agentModel;
+}
+
+export function getPiCommand(): string {
+  return process.platform === "win32" ? "pi.cmd" : "pi";
 }
 
 export function pushModelArgs(args: string[], model: string): void {
@@ -254,7 +260,7 @@ async function runAgent(
       ? { ...process.env, ...envOverrides, ...workerFlag }
       : undefined;
 
-    const proc = spawn("pi", args, {
+    const proc = spawn(getPiCommand(), args, {
       cwd,
       stdio: ["ignore", "pipe", "pipe"],
       ...(env ? { env } : {}),

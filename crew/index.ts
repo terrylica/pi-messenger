@@ -40,6 +40,7 @@ export async function executeCrewAction(
   config?: CrewActionConfig,
   signal?: AbortSignal
 ) {
+  const sessionModel = state.model || undefined;
   // Parse action: "task.show" → group="task", op="show"
   const dotIndex = action.indexOf('.');
   const group = dotIndex > 0 ? action.slice(0, dotIndex) : action;
@@ -189,7 +190,7 @@ export async function executeCrewAction(
       }
       try {
         const planHandler = await import("./handlers/plan.ts");
-        return planHandler.execute(params, ctx, state.agentName || "unknown", () => updateStatus(ctx));
+        return planHandler.execute(params, ctx, state.agentName || "unknown", () => updateStatus(ctx), sessionModel);
       } catch (e) {
         return result(`Error: plan handler failed: ${e instanceof Error ? e.message : 'unknown'}`,
           { mode: "plan", error: "handler_error" });
@@ -209,7 +210,7 @@ export async function executeCrewAction(
 
       try {
         const workHandler = await import("./handlers/work.ts");
-        return workHandler.execute(params, dirs, ctx, appendEntry, signal);
+        return workHandler.execute(params, dirs, ctx, appendEntry, signal, sessionModel);
       } catch (e) {
         return result(`Error: work handler failed: ${e instanceof Error ? e.message : 'unknown'}`,
           { mode: "work", error: "handler_error" });
@@ -219,7 +220,7 @@ export async function executeCrewAction(
     case 'review': {
       try {
         const reviewHandler = await import("./handlers/review.ts");
-        return reviewHandler.execute(params, ctx);
+        return reviewHandler.execute(params, ctx, sessionModel);
       } catch (e) {
         return result(`Error: review handler failed: ${e instanceof Error ? e.message : 'unknown'}`,
           { mode: "review", error: "handler_error" });
@@ -229,7 +230,7 @@ export async function executeCrewAction(
     case 'sync': {
       try {
         const syncHandler = await import("./handlers/sync.ts");
-        return syncHandler.execute(params, ctx);
+        return syncHandler.execute(params, ctx, sessionModel);
       } catch (e) {
         return result(`Error: sync handler failed: ${e instanceof Error ? e.message : 'unknown'}`,
           { mode: "sync", error: "handler_error" });
