@@ -1,6 +1,6 @@
 {
   "name": "pi-messenger",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Inter-agent messaging and file reservation system for pi coding agent",
   "type": "module",
   "author": "Nico Bailon",
@@ -51,7 +51,11 @@
     "vitest": "^2.1.8"
   },
   "pi": {
-    "extensions": ["./index.ts"],
-    "skills": ["./skills"]
+    "extensions": [
+      "./index.ts"
+    ],
+    "skills": [
+      "./skills"
+    ]
   }
 }
