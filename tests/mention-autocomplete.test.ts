@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@mariozechner/pi-tui", () => ({
+vi.mock("@earendil-works/pi-tui", () => ({
   matchesKey: (data: string, key: string) => {
     if (key === "escape") return data === "\x1b";
     if (key === "enter") return data === "\r";
@@ -13,11 +13,11 @@ vi.mock("@mariozechner/pi-tui", () => ({
   visibleWidth: (s: string) => s.length,
 }));
 
-import { createCrewViewState, handleMessageInput, type CrewViewState } from "../overlay-actions.js";
-import type { MessengerState, Dirs } from "../lib.js";
-import type { TUI } from "@mariozechner/pi-tui";
+import { createCrewViewState, handleMessageInput, type CrewViewState } from "../overlay-actions.ts";
+import type { MessengerState, Dirs } from "../lib.ts";
+import type { TUI } from "@earendil-works/pi-tui";
 
-vi.mock("../store.js", () => ({
+vi.mock("../store.ts", () => ({
   getActiveAgents: () => [
     { name: "coral-fox" },
     { name: "amber-wolf" },
@@ -27,7 +27,7 @@ vi.mock("../store.js", () => ({
   getClaims: () => ({}),
 }));
 
-vi.mock("../crew/live-progress.js", () => ({
+vi.mock("../crew/live-progress.ts", () => ({
   getLiveWorkers: () => new Map([
     ["task-1", { name: "jade-elk", taskId: "task-1" }],
   ]),
@@ -35,12 +35,12 @@ vi.mock("../crew/live-progress.js", () => ({
   onLiveWorkersChanged: () => () => {},
 }));
 
-vi.mock("../feed.js", () => ({
+vi.mock("../feed.ts", () => ({
   logFeedEvent: vi.fn(),
   readFeedEvents: () => [],
 }));
 
-vi.mock("../crew/registry.js", () => ({
+vi.mock("../crew/registry.ts", () => ({
   hasActiveWorker: () => false,
 }));
 

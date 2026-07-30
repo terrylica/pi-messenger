@@ -5,18 +5,27 @@
  * Simplified: tasks belong to the plan, not an epic
  */
 
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import type { MessengerState } from "../../lib.js";
-import type { CrewParams, Task, TaskEvidence } from "../types.js";
-import { result } from "../utils/result.js";
-import { loadCrewConfig } from "../utils/config.js";
-import * as store from "../store.js";
-import * as teamStore from "../team/store.js";
-import { logFeedEvent } from "../../feed.js";
-import { executeTaskAction } from "../task-actions.js";
-import { taskRevise, taskReviseTree } from "./revise.js";
-import { approvalTaskSummaries, taskMetadataMarkers } from "../utils/task-format.js";
-export { executeRevise, executeReviseTree, type ReviseResult } from "./revise.js";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type { MessengerState } from "../../lib.ts";
+import type { CrewParams, Task, TaskEvidence } from "../types.ts";
+import { result } from "../utils/result.ts";
+import { loadCrewConfig } from "../utils/config.ts";
+import * as store from "../store.ts";
+import * as teamStore from "../team/store.ts";
+import { logFeedEvent } from "../../feed.ts";
+import { executeTaskAction } from "../task-actions.ts";
+import { taskRevise, taskReviseTree } from "./revise.ts";
+import { approvalTaskSummaries, taskMetadataMarkers } from "../utils/task-format.ts";
+export { executeRevise, executeReviseTree, type ReviseResult } from "./revise.ts";
+
+function revisionHint(task: Task): string {
+  return `pi_messenger({ action: "task.revise", id: "${task.id}", prompt: "Address approval feedback" })`;
+}
+
+function rejectedTasksText(tasks: Task[]): string {
+  if (tasks.length === 0) return "";
+  return `\n\nRejected tasks need revision:\n${tasks.map(t => `  - ${t.id}: ${t.title}${t.approval?.feedback ? ` — ${t.approval.feedback}` : ""}\n    Revise with: \`${revisionHint(t)}\`\n    Or revise dependents too: \`pi_messenger({ action: "task.revise-tree", id: "${t.id}", prompt: "Address approval feedback" })\``).join("\n")}`;
+}
 
 export async function execute(
   op: string,
@@ -24,7 +33,7 @@ export async function execute(
   state: MessengerState,
   ctx: ExtensionContext
 ) {
-  const cwd = ctx.cwd ?? process.cwd();
+  const cwd = ctx.cwd;
 
   switch (op) {
     case "create":
@@ -67,6 +76,7 @@ export async function execute(
 // =============================================================================
 
 function taskActionHint(task: Task): string {
+  if (teamStore.taskNeedsRevision(task)) return `Revise first: \`${revisionHint(task)}\``;
   return teamStore.taskNeedsApproval(task)
     ? `Approve first: \`pi_messenger({ action: "task.approve", id: "${task.id}" })\``
     : `Start with: \`pi_messenger({ action: "task.start", id: "${task.id}" })\``;
@@ -417,9 +427,12 @@ function taskStart(cwd: string, params: CrewParams, state: MessengerState) {
 
   const task = store.getTask(cwd, id);
   if (task && teamStore.taskNeedsApproval(task)) {
-    return result(`Error: Task ${id} needs lead approval before it can be started.`, {
+    const message = teamStore.taskNeedsRevision(task)
+      ? `Error: Task ${id} was rejected and needs revision before it can be started.`
+      : `Error: Task ${id} needs lead approval before it can be started.`;
+    return result(message, {
       mode: "task.start",
-      error: "needs_approval",
+      error: teamStore.taskNeedsRevision(task) ? "needs_revision" : "needs_approval",
       id,
       approval: task.approval,
     });
@@ -507,13 +520,15 @@ function taskDone(cwd: string, params: CrewParams, state: MessengerState) {
     const config = loadCrewConfig(store.getCrewDir(cwd));
     const ready = store.getReadyTasks(cwd, { advisory: config.dependencies === "advisory" });
     const actionable = ready.filter(t => !teamStore.taskNeedsApproval(t));
-    const needsApproval = ready.filter(teamStore.taskNeedsApproval);
+    const rejected = ready.filter(teamStore.taskNeedsRevision);
+    const needsApproval = ready.filter(t => teamStore.taskPendingApproval(t));
     if (actionable.length > 0) {
       nextSteps = `\n\n**Ready tasks:** ${actionable.map(t => t.id).join(", ")}`;
     }
     if (needsApproval.length > 0) {
       nextSteps += `\n\n**Needs approval:** ${needsApproval.map(t => t.id).join(", ")}`;
     }
+    nextSteps += rejectedTasksText(rejected);
   }
 
   const text = `✅ Completed task **${id}**
@@ -625,8 +640,10 @@ function taskReady(cwd: string) {
   const allReady = store.getReadyTasks(cwd, { advisory: config.dependencies === "advisory" });
   const ready: typeof allReady = [];
   const needsApproval: typeof allReady = [];
+  const rejected: typeof allReady = [];
   for (const task of allReady) {
-    if (teamStore.taskNeedsApproval(task)) needsApproval.push(task);
+    if (teamStore.taskNeedsRevision(task)) rejected.push(task);
+    else if (teamStore.taskPendingApproval(task)) needsApproval.push(task);
     else ready.push(task);
   }
 
@@ -641,6 +658,8 @@ function taskReady(cwd: string) {
       reason = "All tasks are done!";
     } else if (inProgress.length > 0) {
       reason = `${inProgress.length} task(s) in progress: ${inProgress.map(t => t.id).join(", ")}`;
+    } else if (rejected.length > 0) {
+      reason = "No startable tasks; rejected tasks need revision.";
     } else if (needsApproval.length > 0) {
       reason = "No startable tasks; ready tasks need lead approval.";
     } else if (blocked.length > 0) {
@@ -652,10 +671,12 @@ function taskReady(cwd: string) {
     const approvalText = needsApproval.length > 0
       ? `\n\nNeeds approval:\n${needsApproval.map(t => `  - ${t.id}: ${t.title}`).join("\n")}`
       : "";
-    return result(`No ready tasks.\n\n${reason}${approvalText}`, {
+    const revisionText = rejectedTasksText(rejected);
+    return result(`No ready tasks.\n\n${reason}${approvalText}${revisionText}`, {
       mode: "task.ready",
       ready: [],
       needsApproval: approvalTaskSummaries(needsApproval),
+      rejected: approvalTaskSummaries(rejected),
       reason,
     });
   }
@@ -670,6 +691,8 @@ function taskReady(cwd: string) {
   if (needsApproval.length > 0) {
     lines.push(`\nNeeds approval:\n${needsApproval.map(t => `  - ${t.id}: ${t.title}`).join("\n")}`);
   }
+  const revisionText = rejectedTasksText(rejected);
+  if (revisionText) lines.push(revisionText);
 
   return result(lines.join("\n"), {
     mode: "task.ready",
@@ -678,6 +701,7 @@ function taskReady(cwd: string) {
       title: t.title,
     })),
     needsApproval: approvalTaskSummaries(needsApproval),
+    rejected: approvalTaskSummaries(rejected),
   });
 }
 
@@ -721,7 +745,11 @@ function taskApproval(cwd: string, params: CrewParams, state: MessengerState, st
   const updated = store.updateTask(cwd, id, { approval });
   logFeedEvent(cwd, actor, status === "approved" ? "task.approve" : "task.reject", id, params.reason);
 
-  return result(`${status === "approved" ? "Approved" : "Rejected"} task **${id}**.`, {
+  const nextStep = status === "rejected"
+    ? `\n\nNext: revise with \`${revisionHint(task)}\`, or use \`pi_messenger({ action: "task.revise-tree", id: "${id}", prompt: "Address approval feedback" })\` if dependents need updates too.`
+    : "";
+
+  return result(`${status === "approved" ? "Approved" : "Rejected"} task **${id}**.${nextStep}`, {
     mode,
     task: updated ? { id: updated.id, title: updated.title, approval: updated.approval } : undefined,
   });

@@ -6,7 +6,7 @@ import * as fs from "node:fs";
 import { randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import { execSync } from "node:child_process";
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   type AgentRegistration,
   type AgentMailMessage,
@@ -25,7 +25,7 @@ import {
   generateMemorableName,
   isValidAgentName,
   pathMatchesReservation,
-} from "./lib.js";
+} from "./lib.ts";
 
 // =============================================================================
 // Agents Cache (Fix 1: Reduce disk I/O)
@@ -339,7 +339,7 @@ export function register(state: MessengerState, dirs: Dirs, ctx: ExtensionContex
 
     ensureDirSync(getMyInbox(state, dirs));
 
-    const cwd = normalizeCwd(ctx.cwd ?? process.cwd());
+    const cwd = normalizeCwd(ctx.cwd);
     const gitBranch = getGitBranch(cwd);
     const now = new Date().toISOString();
     const registration: AgentRegistration = {
@@ -522,7 +522,7 @@ export function renameAgent(
 
   processAllPendingMessages(state, dirs, deliverFn);
 
-  const cwd = normalizeCwd(ctx.cwd ?? process.cwd());
+  const cwd = normalizeCwd(ctx.cwd);
   const gitBranch = getGitBranch(cwd);
   const now = new Date().toISOString();
   const registration: AgentRegistration = {

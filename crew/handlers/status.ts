@@ -4,20 +4,20 @@
  * Shows plan progress and task status.
  */
 
-import type { ExtensionContext } from "@mariozechner/pi-coding-agent";
-import { result } from "../utils/result.js";
-import { discoverCrewAgents } from "../utils/discover.js";
-import { uninstallAgents } from "../utils/install.js";
-import { loadCrewConfig } from "../utils/config.js";
-import { formatDuration } from "../../lib.js";
-import * as store from "../store.js";
-import { autonomousState, getPlanningUpdateAgeMs, isAutonomousForCwd, isPlanningForCwd, isPlanningStalled, planningState, PLANNING_STALE_TIMEOUT_MS } from "../state.js";
+import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
+import { result } from "../utils/result.ts";
+import { discoverCrewAgents } from "../utils/discover.ts";
+import { uninstallAgents } from "../utils/install.ts";
+import { loadCrewConfig } from "../utils/config.ts";
+import { formatDuration } from "../../lib.ts";
+import * as store from "../store.ts";
+import { autonomousState, getPlanningUpdateAgeMs, isAutonomousForCwd, isPlanningForCwd, isPlanningStalled, planningState, PLANNING_STALE_TIMEOUT_MS } from "../state.ts";
 
 /**
  * Execute status action - shows plan progress.
  */
 export async function execute(ctx: ExtensionContext) {
-  const cwd = ctx.cwd ?? process.cwd();
+  const cwd = ctx.cwd;
   const plan = store.getPlan(cwd);
 
   if (!plan) {
@@ -197,7 +197,7 @@ export async function executeCrew(
   op: string,
   ctx: ExtensionContext
 ) {
-  const cwd = ctx.cwd ?? process.cwd();
+  const cwd = ctx.cwd;
 
   switch (op) {
     case "status": {

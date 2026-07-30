@@ -3,7 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("@mariozechner/pi-tui", () => ({
+vi.mock("@earendil-works/pi-tui", () => ({
   matchesKey: () => false,
   truncateToWidth: (value: string) => value,
   visibleWidth: (value: string) => value.length,
@@ -66,7 +66,7 @@ function createEventContext(cwd: string, hasUI: () => boolean) {
 
 async function loadExtension() {
   const pi = createMockPi();
-  const { default: piMessengerExtension } = await import("../index.js");
+  const { default: piMessengerExtension } = await import("../index.ts");
   piMessengerExtension(pi as any);
   return pi;
 }

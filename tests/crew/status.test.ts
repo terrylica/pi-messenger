@@ -1,10 +1,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
-import { execute } from "../../crew/handlers/status.js";
-import { createPlan, createTask, startTask } from "../../crew/store.js";
-import { autonomousState, planningState, PLANNING_STALE_TIMEOUT_MS, startAutonomous, startPlanningRun, stopAutonomous } from "../../crew/state.js";
-import { createTempCrewDirs } from "../helpers/temp-dirs.js";
+import { execute } from "../../crew/handlers/status.ts";
+import { createPlan, createTask, startTask } from "../../crew/store.ts";
+import { autonomousState, planningState, PLANNING_STALE_TIMEOUT_MS, startAutonomous, startPlanningRun, stopAutonomous } from "../../crew/state.ts";
+import { createTempCrewDirs } from "../helpers/temp-dirs.ts";
 
 function resetPlanningState(): void {
   planningState.active = false;

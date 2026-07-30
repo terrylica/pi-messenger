@@ -1,12 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import type { MessengerState } from "../../lib.js";
-import * as taskHandler from "../../crew/handlers/task.js";
-import * as store from "../../crew/store.js";
-import * as teamStore from "../../crew/team/store.js";
-import { createMockContext } from "../helpers/mock-context.js";
-import { createTempCrewDirs } from "../helpers/temp-dirs.js";
+import type { MessengerState } from "../../lib.ts";
+import * as taskHandler from "../../crew/handlers/task.ts";
+import * as store from "../../crew/store.ts";
+import * as teamStore from "../../crew/team/store.ts";
+import { createMockContext } from "../helpers/mock-context.ts";
+import { createTempCrewDirs } from "../helpers/temp-dirs.ts";
 
 function createState(agentName = "Lead"): MessengerState {
   return { agentName } as MessengerState;
@@ -94,6 +94,26 @@ describe("Team task approval gates", () => {
 
     const show = await taskHandler.execute("show", { id: gated.id }, createState(), createMockContext(cwd));
     expect(show.content[0].text).toContain("[worker] [risk: auth] [approval: pending]");
+  });
+
+  it("surfaces rejected tasks as revision work", async () => {
+    const { cwd } = createTempCrewDirs();
+    store.createPlan(cwd, "docs/PRD.md");
+    const rejected = store.createTask(cwd, "Change auth", "", [], {
+      approval: { required: true, status: "rejected", feedback: "needs rollback tests" },
+    });
+
+    const start = await taskHandler.execute("start", { id: rejected.id }, createState("Worker"), createMockContext(cwd));
+    expect(start.details.error).toBe("needs_revision");
+
+    const ready = await taskHandler.execute("ready", {}, createState(), createMockContext(cwd));
+    expect(ready.details.ready).toEqual([]);
+    expect(ready.details.needsApproval).toEqual([]);
+    expect(ready.details.rejected).toEqual([
+      { id: rejected.id, title: "Change auth", approval: { required: true, status: "rejected", feedback: "needs rollback tests" } },
+    ]);
+    expect(ready.content[0].text).toContain("Rejected tasks need revision");
+    expect(ready.content[0].text).toContain('pi_messenger({ action: "task.revise", id: "task-1", prompt: "Address approval feedback" })');
   });
 
   it("approves gated tasks so they can be started", async () => {

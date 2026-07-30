@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveModel, pushModelArgs, spawnAgents } from "../../crew/agents.js";
-import { createTempCrewDirs, type TempCrewDirs } from "../helpers/temp-dirs.js";
+import { resolveModel, pushModelArgs, spawnAgents } from "../../crew/agents.ts";
+import { createTempCrewDirs, type TempCrewDirs } from "../helpers/temp-dirs.ts";
 
 const spawnMock = vi.hoisted(() => vi.fn());
 
@@ -36,13 +36,14 @@ function createMockProcess(exitCode: number): MockProcess {
   return proc;
 }
 
-function writeWorkerAgent(cwd: string, model?: string): void {
+function writeWorkerAgent(cwd: string, model?: string, tools?: string[]): void {
   const modelLine = model ? `model: ${model}\n` : "";
+  const toolsLine = tools ? `tools: ${tools.join(", ")}\n` : "";
   const content = `---
 name: crew-worker
 description: Test worker
 crewRole: worker
-${modelLine}---
+${modelLine}${toolsLine}---
 You are a test worker.
 `;
 
@@ -130,6 +131,22 @@ describe("crew/model override", () => {
     expect(args[providerIdx + 1]).toBe("zai");
     expect(modelIdx).toBeGreaterThan(-1);
     expect(args[modelIdx + 1]).toBe("glm-5");
+  });
+
+  it("spawnAgents treats bare .js tool entries as extension paths", async () => {
+    writeWorkerAgent(dirs.cwd, undefined, ["read", "custom-tool.js"]);
+
+    await spawnAgents([{
+      agent: "crew-worker",
+      task: "Implement task",
+      taskId: "task-1",
+    }], dirs.cwd);
+
+    const args = spawnMock.mock.calls[0][1] as string[];
+    const extensionIdx = args.indexOf("--extension");
+
+    expect(extensionIdx).toBeGreaterThan(-1);
+    expect(args[extensionIdx + 1]).toBe("custom-tool.js");
   });
 
   describe("pushModelArgs", () => {
