@@ -2,9 +2,19 @@
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-08-23
+
+### Highlights
+- Resuming a session is more reliable when older or malformed agent messages are present.
+- Crew planning is less likely to create duplicate task lists from repeated planning runs.
+- Crew reviews now look at the task branch, so reviewers see the work they are meant to review.
+- Auto-review no longer spends time on tasks that are already blocked or marked as duplicates.
+
 ### Fixed
-- Render malformed persisted agent messages that use `message`/`ts` fields and normalize inbound mail using those fields, fixing #29. Thanks to [@rioxiaoliliang](https://github.com/rioxiaoliliang).
-- Prevent duplicate Crew task sets during planning, review task branches instead of the main checkout, and skip auto-review for blocked or duplicate tasks. Thanks to [@selimdizer](https://github.com/selimdizer) for #30.
+- Render malformed persisted agent messages and normalize inbound mail that uses `message` and `ts`, fixing session resume crashes. Thanks to [@rioxiaoliliang](https://github.com/rioxiaoliliang) for #29.
+- Prevent duplicate Crew task sets when planning runs overlap or repeat.
+- Review task branches instead of the main checkout so Crew reviewers inspect the intended changes.
+- Skip auto-review for blocked or duplicate Crew tasks. Thanks to [@selimdizer](https://github.com/selimdizer) for #30.
 
 ## [0.15.0] - 2026-07-30
 
