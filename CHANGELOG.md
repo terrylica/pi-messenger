@@ -2,8 +2,15 @@
 
 ## [Unreleased]
 
+## [0.15.2] - 2026-08-27
+
+### Highlights
+- Crew workers can now finish tasks reliably after loading `pi_messenger`.
+- Lobby workers get the same `pi_messenger` access as directly spawned workers.
+- Autonomous Crew runs no longer retry completed work because workers cannot report done.
+
 ### Fixed
-- Preserve extension-provided Crew worker tools such as `pi_messenger` in subprocess allow-lists, fixing #34. Thanks to [@limars874](https://github.com/limars874) for #34.
+- Keep `pi_messenger` available to Crew workers and lobby workers so they can release reservations and mark tasks done, fixing #34. Thanks to [@limars874](https://github.com/limars874) for #34.
 
 ## [0.15.1] - 2026-08-23
 
